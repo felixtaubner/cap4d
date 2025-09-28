@@ -1,0 +1,15 @@
+n_ddim_steps: 100
+cfg_scale: 2.0
+resolution: 512
+seed: 124
+R_max: 4
+V: 8
+
+ckpt_path: ./data/weights/mmdm/
+
+generation_data:
+  data_path: ./data/assets/datasets/gen_data.npz
+  yaw_range: 55
+  pitch_range: 20
+  expr_factor: 1.0
+  n_samples: 840

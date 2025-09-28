@@ -6,6 +6,7 @@ import numpy as np
 import einops
 import cv2
 from decord import VideoReader
+from scipy.spatial.transform import Rotation as R
 
 from cap4d.flame.flame import CAP4DFlameSkinner, compute_flame
 
@@ -234,3 +235,44 @@ def load_frame(
         frame_img = frame_img.asnumpy()  # if the video reader is a decord reader
 
     return frame_img
+
+
+def pivot_camera_intrinsic(extrinsics, target, angles, distance_factor=1.):
+    """
+    Rotates a camera around a target point.
+
+    Parameters:
+    - extrinsics: (4x4) numpy array, world_to_camera transformation matrix.
+    - target: (3,) numpy array, target coordinates to pivot around.
+    - angles: (3,) array-like, rotation angles (degrees) around X, Y, Z axes.
+
+    Returns:
+    - new_extrinsics: (4x4) numpy array, updated world_to_camera transformation.
+    """
+    extrinsics = np.linalg.inv(extrinsics)
+
+    # Extract rotation and translation from extrinsics
+    R_c2w = extrinsics[:3, :3]  # 3x3 rotation matrix
+    t_c2w = extrinsics[:3, 3]   # 3x1 translation vector
+
+    # Compute offset vector from target to camera
+    v = (t_c2w - target) * distance_factor
+
+    # Compute rotation matrix for given angles
+    R_delta = R.from_euler('YX', angles, degrees=True).as_matrix()  # 'yx'
+
+    # Apply intrinsic rotation to the camera's rotation (local frame)
+    new_R_c2w = R_c2w @ R_delta
+
+    # Rotate position offset in camera frame as well
+    new_v = R_c2w @ R_delta @ np.linalg.inv(R_c2w) @ v
+    new_t_c2w = target + new_v
+
+    # Construct new extrinsics
+    new_extrinsics = np.eye(4)
+    new_extrinsics[:3, :3] = new_R_c2w
+    new_extrinsics[:3, 3] = new_t_c2w
+
+    # import pdb; pdb.set_trace()
+
+    return np.linalg.inv(new_extrinsics)

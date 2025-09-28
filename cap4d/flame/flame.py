@@ -56,8 +56,6 @@ class CAP4DFlameSkinner(FlameSkinner):
             eye_rot (N_t, 3)
             jaw_rot (N_t, 3)
             neck_rot (N_t, 3)
-        vert_mask: torch.Tensor (N_v)
-            If given, will apply a vertex mask to save computation time.
 
         output: verts (N_t, V, 3)
         """

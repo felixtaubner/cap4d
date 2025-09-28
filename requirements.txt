@@ -11,3 +11,5 @@ chumpy
 gsplat 
 plyfile
 roma
+xformers
+triton
