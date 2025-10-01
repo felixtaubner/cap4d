@@ -6,7 +6,7 @@ pytorch-lightning
 einops
 opencv-python
 decord
-scipy
+scipy==1.13.1
 chumpy
 gsplat 
 plyfile

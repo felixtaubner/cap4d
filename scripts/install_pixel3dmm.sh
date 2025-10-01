@@ -59,10 +59,14 @@ git checkout af22e7a5810d474bc28a1433db533723d6bd2b07
 cp ../replacement_code/install_mica_download_flame.sh install.sh
 cp ../replacement_code/mica_demo.py demo.py
 cp ../replacement_code/mica.py micalib/models/mica.py
+sed -i 's/np\.Inf/np.inf/g' datasets/creation/util.py  # correct numpy version issue
 printf "$FLAME_USERNAME\n$FLAME_PWD\n" | ./install.sh
+# fix installation
+mv data/FLAME2020/FLAME2020/* data/FLAME2020/
+mv data/FLAME2023/FLAME2023/* data/FLAME2023/
+python $CAP4D_PATH/scripts/fixes/fix_flame_pickle.py --pickle_path data/FLAME2020/generic_model.pkl
 python $CAP4D_PATH/scripts/fixes/fix_flame_pickle.py --pickle_path data/FLAME2023/flame2023_no_jaw.pkl
 python $CAP4D_PATH/scripts/fixes/fix_flame_pickle.py --pickle_path data/FLAME2023/flame2023.pkl
-python $CAP4D_PATH/scripts/fixes/fix_flame_pickle.py --pickle_path data/FLAME2020/generic_model.pkl
 cd ..
 
 # PIPNet

@@ -30,7 +30,7 @@ conda activate cap4d_env
 pip install -r requirements.txt
 
 # 4. Set python path
-export PYTHONPATH=/path/to/cap4d:$PYTHONPATH
+export PYTHONPATH=$(realpath "./"):$PYTHONPATH
 ```
 Follow the [instructions](https://github.com/facebookresearch/pytorch3d/blob/main/INSTALL.md) and install Pytorch3D. Make sure to install with CUDA support. We recommend to install from source: 
 
@@ -56,6 +56,13 @@ bash scripts/download_flame.sh
 
 # 2. Download CAP4D MMDM weights
 bash scripts/download_mmdm_weights.sh
+```
+
+If the FLAME download script did not work, download FLAME2023 from the [FLAME website](https://flame.is.tue.mpg.de/index.html) and place `flame2023_no_jaw.pkl` in `data/assets/flame/`.
+Then, fix the flame pkl file to be compatible with newer numpy versions:
+
+```bash
+python scripts/fixes/fix_flame_pickle.py --pickle_path data/assets/flame/flame2023_no_jaw.pkl
 ```
 
 ### ✅ 3. Check installation with a test run
@@ -94,8 +101,10 @@ Coming soon! For now, only generations using the provided identities with precom
 Install [Pixel3DMM](https://github.com/SimonGiebenhain/pixel3dmm) using the provided script. Notice that this is prone to errors due to package version mismatches. Please report any errors as an issue!
 
 ```bash
-export PIXEL3DMM_PATH="../PATH/TO/pixel3dmm"  # set this to where you would like to clone the Pixel3DMM repo (absolute path)
-export CAP4D_PATH="../PATH/TO/cap4d"  # set this to the cap4d directory (absolute path)
+export FLAME_USERNAME=your_flame_user_name
+export FLAME_PWD=your_flame_password
+export PIXEL3DMM_PATH=$(realpath "../PATH/TO/pixel3dmm")  # set this to where you would like to clone the Pixel3DMM repo (absolute path)
+export CAP4D_PATH=$(realpath "./")  # set this to the cap4d directory (absolute path)
 
 bash scripts/install_pixel3Dmm.sh
 ```
@@ -104,14 +113,18 @@ Run tracking and conversion on reference images/videos using the provided script
 
 ```bash
 export PIXEL3DMM_PATH=$(realpath "../PATH/TO/pixel3dmm")
-export CAP4D_PATH=$(realpath "../PATH/TO/cap4d") 
+export CAP4D_PATH=$(realpath "./") 
 
-# process a video
+mkdir examples/output/custom/
+
+# For more information on arguments
 bash scripts/track_video_pixel3dmm.sh --help
-bash scripts/track_video_pixel3dmm.sh examples/input/animation/example_video.mp4 examples/input/animation/example_tracking/  # input_path (can be directory containing images or video), output_path (directory where tracking is saved)
 
-# process a directory of images
-bash scripts/track_video_pixel3dmm.sh examples/input/felix/images/cam0/ examples/input/felix_pixel3dmm/
+# Process a directory of (reference) images
+bash scripts/track_video_pixel3dmm.sh examples/input/felix/images/cam0/ examples/output/custom/reference_tracking/
+
+# Optional: process a driving (or reference) video
+bash scripts/track_video_pixel3dmm.sh examples/input/animation/example_video.mp4 examples/output/custom/driving_video_tracking/
 ```
 
 Notice that results will be slightly worse than with FlowFace tracking, since the MMDM is trained with FlowFace.
@@ -120,29 +133,29 @@ Notice that results will be slightly worse than with FlowFace tracking, since th
 
 ```bash
 # Generate images with single reference image
-python cap4d/inference/generate_images.py --config_path configs/generation/high_quality.yaml --reference_data_path examples/input/lincoln/ --output_path examples/output/lincoln/
-
-# Generate images with multiple reference images
-python cap4d/inference/generate_images.py --config_path configs/generation/high_quality.yaml --reference_data_path examples/input/felix/ --output_path examples/output/felix/
+python cap4d/inference/generate_images.py --config_path configs/generation/default.yaml --reference_data_path examples/output/custom/reference_tracking/ --output_path examples/output/custom/mmdm/
 ```
 Note: the generation script will use all visible CUDA devices. The more available devices, the faster it runs! This will take hours, and requires lots of RAM (ideally > 64 GB) to run smoothly.
 
 ### 👤 3. Fit Gaussian avatar 
 
 ```bash
-python gaussianavatars/train.py --config_path configs/avatar/default.yaml --source_paths examples/output/{SUBJECT}/reference_images/ examples/output/{SUBJECT}/generated_images/ --model_path examples/output/{SUBJECT}/avatar/ --interval 5000
+python gaussianavatars/train.py --config_path configs/avatar/default.yaml --source_paths examples/output/custom/mmdm/reference_images/ examples/output/custom/mmdm/generated_images/ --model_path examples/output/custom/avatar/ --interval 5000
 ```
 
 ### 🕺 4. Animate your avatar
 
-For now, only animations with precomputed FLAME annotations are supported. 
-These animations are located in `examples/input/animation/`.
+Once the avatar is generated, it can be animated with the driving video computed in step 1 or the provided animations. 
 
 ```bash
-python gaussianavatars/animate.py --model_path examples/output/lincoln/avatar/ --target_animation_path examples/input/animation/sequence_00/fit.npz  --target_cam_trajectory_path examples/input/animation/sequence_00/orbit.npz  --output_path examples/output/lincoln/animation_00/ --export_ply 1 --compress_ply 0
+# Animate the avatar with provided animation files
+python gaussianavatars/animate.py --model_path examples/output/custom/avatar/ --target_animation_path examples/input/animation/sequence_00/fit.npz  --target_cam_trajectory_path examples/input/animation/sequence_00/orbit.npz  --output_path examples/output/custom/animation_00/ --export_ply 1 --compress_ply 0
+
+# Animate the avatar with driving video (computed using Pixel3DMM)
+python gaussianavatars/animate.py --model_path examples/output/custom/avatar/ --target_animation_path examples/output/custom/driving_video_tracking/fit.npz  --target_cam_trajectory_path examples/output/custom/driving_video_tracking/cam_static.npz  --output_path examples/output/custom/animation_example/ --export_ply 1 --compress_ply 0
 ```
 
-The `--target_animation_path` contains FLAME expressions and pose, while the (optional) `--target_cam_trajectory_path` contains the relative camera trajectory. 
+The `--target_animation_path` argument contains FLAME expressions and pose, while the (optional) `--target_cam_trajectory_path` argument contains the relative camera trajectory. 
 
 ### ⚡️ 5. Full inference
 
@@ -150,7 +163,7 @@ We provide a convenient script to run full inference using your reference images
 
 ```bash
 export PIXEL3DMM_PATH=$(realpath "../PATH/TO/pixel3dmm")
-export CAP4D_PATH=$(realpath "../PATH/TO/cap4d") 
+export CAP4D_PATH=$(realpath "./") 
 
 # Generate avatar with custom input images/videos.
 bash scripts/generate_avatar.sh --help
@@ -159,6 +172,13 @@ bash scripts/generate_avatar.sh {INPUT_VIDEO_PATH} {OUTPUT_PATH} [{QUALITY}] [{D
 # Example generation with default quality generation with input images and driving video.
 bash scripts/generate_avatar.sh examples/input/felix/images/cam0/ examples/output/felix_custom/ default examples/input/animation/example_video.mp4
 ```
+
+### ✨ 6. View avatar in live viewer
+
+Open the [real-time viewer](https://felixtaubner.github.io/cap4d/viewer/) in your browser (powered by [Brush](https://github.com/ArthurBrussee/brush/)). Click `Load file` and
+upload the exported animation found in 
+`examples/output/custom/animation_00/exported_animation.ply` or
+`examples/output/custom/animation_example/exported_animation.ply`.
 
 ## 📚 Related Resources
 

@@ -13,7 +13,7 @@ password=$(urle $FLAME_PWD)
 echo -e "\nDownloading FLAME..."
 mkdir -p FLAME2023/
 wget --post-data "username=$username&password=$password" 'https://download.is.tue.mpg.de/download.php?domain=flame&sfile=FLAME2023.zip&resume=1' -O './FLAME2023.zip' --no-check-certificate --continue
-unzip FLAME2023.zip -d FLAME2023/
+unzip FLAME2023.zip -d ./
 rm -rf FLAME2023.zip
 
 mv FLAME2023/flame2023_no_jaw.pkl ./
@@ -21,6 +21,6 @@ rm -rf FLAME2023
 
 # Fix the FLAME pickle file for compatibility issues
 cd ../../../
-python python scripts/fixes/fix_flame_pickle.py --pickle_path data/assets/flame/flame2023_no_jaw.pkl
+python scripts/fixes/fix_flame_pickle.py --pickle_path data/assets/flame/flame2023_no_jaw.pkl
 
-echo -e "\nInstallation has finished!"
+echo -e "\nInstallation has finished. If there were any error messages, follow README to download and unzip FLAME2023 manually!"
