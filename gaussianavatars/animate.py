@@ -167,7 +167,14 @@ def render_sequence(args):
         print("Exporting animation...")
         ply_writer.save_ply(output_path / "exported_animation.ply")
 
-    frames_to_video(render_path, output_path / "renders.mp4", fps=args.fps)
+    # load fps
+    fps = 24  # default fps
+    if args.target_cam_trajectory_path is not None:
+        camera_trajectory = dict(np.load(args.target_cam_trajectory_path))
+        if "fps" in camera_trajectory:
+            fps = camera_trajectory["fps"]
+
+    frames_to_video(render_path, output_path / "renders.mp4", fps=fps)
 
 
 if __name__ == "__main__":
@@ -188,7 +195,6 @@ if __name__ == "__main__":
                         "(frames, video and optionally ply) will be saved.")
     parser.add_argument("--iteration", default=-1, type=int)
     parser.add_argument("--quiet", action="store_true")
-    parser.add_argument("--fps", type=int, default=24)
     parser.add_argument("--render_alpha", type=int, default=False)
     parser.add_argument("--render_depth", type=int, default=False)
     parser.add_argument("--export_ply", type=int, default=True, 

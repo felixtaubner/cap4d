@@ -18,6 +18,7 @@ from cap4d.inference.utils import (
     save_visualization,
     save_flame_params,
     convert_and_save_latent_images,
+    find_number_of_generated_images,
 )
 
 
@@ -44,11 +45,18 @@ def main(args):
     refset = ReferenceDataset(ref_data_path, gen_config["resolution"])
     ref_dataloader = DataLoader(refset, num_workers=1, batch_size=1, shuffle=False)
 
+    n_gen_samples = find_number_of_generated_images(
+        gen_config["generation_data"]["n_samples"], 
+        len(ref_dataloader),
+        gen_config["R_max"],
+        gen_config["V"],
+    )
+
     # create generation dataloaders
     genset = GenerationDataset(
         generation_data_path=gen_config["generation_data"]["data_path"],
         reference_flame_item=refset.flame_list[0],
-        n_samples=gen_config["generation_data"]["n_samples"],
+        n_samples=n_gen_samples,
         resolution=gen_config["resolution"],
         yaw_range=gen_config["generation_data"]["yaw_range"],
         pitch_range=gen_config["generation_data"]["pitch_range"],

@@ -55,7 +55,6 @@ model_params:
   n_points_per_triangle: 2
   use_lower_jaw: True
   static_neck: False
-  use_glasses: True
   gaussian_init_type: "scaled"
   use_expr_mask: True
   uv_resolution: 128

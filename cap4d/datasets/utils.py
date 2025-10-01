@@ -6,6 +6,7 @@ import numpy as np
 import einops
 import cv2
 from decord import VideoReader
+from scipy.spatial.transform import Rotation as R
 
 from cap4d.flame.flame import CAP4DFlameSkinner, compute_flame
 
@@ -234,3 +235,88 @@ def load_frame(
         frame_img = frame_img.asnumpy()  # if the video reader is a decord reader
 
     return frame_img
+
+
+def pivot_camera_intrinsic(extrinsics, target, angles, distance_factor=1.):
+    """
+    Rotates a camera around a target point.
+
+    Parameters:
+    - extrinsics: (4x4) numpy array, world_to_camera transformation matrix.
+    - target: (3,) numpy array, target coordinates to pivot around.
+    - angles: (3,) array-like, rotation angles (degrees) around X, Y, Z axes.
+
+    Returns:
+    - new_extrinsics: (4x4) numpy array, updated world_to_camera transformation.
+    """
+    extrinsics = np.linalg.inv(extrinsics)
+
+    # Extract rotation and translation from extrinsics
+    R_c2w = extrinsics[:3, :3]  # 3x3 rotation matrix
+    t_c2w = extrinsics[:3, 3]   # 3x1 translation vector
+
+    # Compute offset vector from target to camera
+    v = (t_c2w - target) * distance_factor
+
+    # Compute rotation matrix for given angles
+    R_delta = R.from_euler('YX', angles, degrees=True).as_matrix()  # 'yx'
+
+    # Apply intrinsic rotation to the camera's rotation (local frame)
+    new_R_c2w = R_c2w @ R_delta
+
+    # Rotate position offset in camera frame as well
+    new_v = R_c2w @ R_delta @ np.linalg.inv(R_c2w) @ v
+    new_t_c2w = target + new_v
+
+    # Construct new extrinsics
+    new_extrinsics = np.eye(4)
+    new_extrinsics[:3, :3] = new_R_c2w
+    new_extrinsics[:3, 3] = new_t_c2w
+
+    # import pdb; pdb.set_trace()
+
+    return np.linalg.inv(new_extrinsics)
+
+
+def get_head_direction(rot):
+    rot_mat = R.from_rotvec(rot).as_matrix()
+    head_dir = -rot_mat[:3, 2]  # -z is head direction
+    head_dir[1:] = -head_dir[1:]  # p3d to opencv
+    return head_dir
+
+
+def compute_yaw_pitch_to_face_direction(extrinsics, world_direction):
+    """
+    Computes yaw and pitch angles (in degrees) needed to rotate the camera
+    so its forward vector aligns with the given world-space direction.
+
+    Parameters:
+    - extrinsics: (4x4) camera-to-world matrix
+    - world_direction: (3,) unit vector representing desired view direction in world space
+
+    Returns:
+    - yaw, pitch: angles in degrees
+    """
+
+    # Normalize direction
+    world_direction = world_direction / np.linalg.norm(world_direction)
+
+    # Camera's current rotation (camera-to-world)
+    R_c2w = extrinsics[:3, :3]
+
+    # Convert world direction into camera's local frame
+    dir_local = R_c2w.T @ world_direction
+
+    dx, dy, dz = dir_local
+
+    # Handle potential divide-by-zero or arcsin domain errors
+    dz = np.clip(dz, -1e-6, 1) if dz == 0 else dz
+    dy = np.clip(dy, -1, 1)
+
+    # Yaw: rotation around Y (left-right)
+    yaw = np.degrees(np.arctan2(dx, dz))
+
+    # Pitch: rotation around X (up-down)
+    pitch = np.degrees(np.arcsin(-dy))  # negative because +Y is up
+
+    return yaw, pitch

@@ -1,4 +1,4 @@
-n_ddim_steps: 100  # can be set to 250 to improve quality slightly
+n_ddim_steps: 50
 cfg_scale: 2.0
 resolution: 512
 seed: 124
@@ -12,4 +12,4 @@ generation_data:
   yaw_range: 55
   pitch_range: 20
   expr_factor: 1.0
-  n_samples: 840
+  n_samples: 210

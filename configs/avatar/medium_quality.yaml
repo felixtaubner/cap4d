@@ -1,5 +1,5 @@
 opt_params:
-  iterations: 100_000
+  iterations: 50_000
 
   sh_warmup_iterations: 1_000
 
@@ -21,24 +21,24 @@ opt_params:
 
   densification_interval: 2000
   densify_grad_threshold: 1e-6
-  opacity_reset_interval: 20_000
-  densify_until_iter: 70_000
-  densify_from_iter: 8_000
+  opacity_reset_interval: 10_000
+  densify_until_iter: 40_000
+  densify_from_iter: 4_000
 
   position_lr_init: 5e-3
   position_lr_final: 5e-5
   position_lr_delay_mult: 0.01
-  position_lr_max_steps: 100_000
+  position_lr_max_steps: 50_000
   
   w_lpips: 0.1
   lambda_lpips_end: 0.9
-  lpips_linear_start: 10_000
-  lpips_linear_end: 60_000
+  lpips_linear_start: 5_000
+  lpips_linear_end: 40_000
   deform_net_w_decay: 2e-3
   deform_net_lr_init: 1e-5
   deform_net_lr_final: 1e-7
   deform_net_lr_delay_mult: 0.01
-  deform_net_lr_max_steps: 100_000
+  deform_net_lr_max_steps: 50_000
   lambda_laplacian: 1.0
   lambda_relative_deform: 0.4
   lambda_relative_rot: 0.005
@@ -46,7 +46,7 @@ opt_params:
   neck_lr_init: 1e-5
   neck_lr_final: 1e-7
   neck_lr_delay_mult: 0.01
-  neck_lr_max_steps: 100_000
+  neck_lr_max_steps: 50_000
 
   lambda_neck: 1.0
   
@@ -58,6 +58,6 @@ model_params:
   gaussian_init_type: "scaled"
   use_expr_mask: True
   uv_resolution: 128
-  n_gaussians_init: 100_000
+  n_gaussians_init: 50_000
 
   sh_degree: 3

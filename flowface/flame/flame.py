@@ -71,25 +71,14 @@ class FlameSkinner(torch.nn.Module):
                 Number of expression parameters to use up to a max of 100
             blink_blendshape_path: str
                 Path to npy file containing the blink blendshapes - if None, no blink blendshape will be used
-            vert_mask: torch.Tensor
-                Vertex mask - if None, no vertex mask will be applied
         """
 
         super().__init__()
 
         assert n_shape_params <= FLAME_N_SHAPE
         assert n_expr_params <= FLAME_N_EXPR
-
-        # load FLAME weights
-        np.bool = bool  # HACK: this is necessary because the FLAME model is saved in a deprecated numpy version
-        np.int = int
-        np.float = float
-        np.complex = complex
-        np.object = object
-        np.unicode = str  # `str` now includes Unicode in Python 3
-        np.str = str
-        np.nan = np.nan
-        np.inf = np.inf
+        
+        # load FLAME weight pickle file with monkey-patch
         flame_dict = load_model_pkl(flame_pkl_path)
 
         # initialize vertex position components
@@ -211,7 +200,16 @@ class FlameSkinner(torch.nn.Module):
             pose_dirs = self.cached_pose_dirs
 
         identity = torch.eye(3, dtype=torch.float32, device=vertices.device)  # (3, 3)
-        pose_offsets = einops.einsum(rotations[:, 1:] - identity, pose_dirs, "B J i j, J i j V xyz -> B V xyz")
+        # pose_offsets = einops.einsum(rotations[:, 1:] - identity, pose_dirs, "B J i j, J i j V xyz -> B V xyz")
+        # WARNING: This is because we reverse neck rotation definition. We rotate neck using base rotation param.
+        pose_offset_params = rotations[:, [0, 2, 3, 4]] - identity
+        # import pdb; pdb.set_trace()
+        # pose_offset_params = torch.cat([
+        #     -rotations[:, [1]],
+        #     rotations[:, [2, 3, 4]],
+        # ], dim=1)
+        pose_offset_params = pose_offset_params - identity
+        pose_offsets = einops.einsum(pose_offset_params, pose_dirs, "B J i j, J i j V xyz -> B V xyz")
 
         assert rotations.shape[1] == j_regressor.shape[0]
 
@@ -281,6 +279,8 @@ class FlameSkinner(torch.nn.Module):
 
         # create rotation matrix for joint rotations, we apply base transform separately
         rotations = torch.eye(3, device=verts.device)[None, None].repeat(verts.shape[0], 5, 1, 1)
+        if "neck_rot" in flame_sequence and flame_sequence["neck_rot"] is not None:
+            rotations[:, 1, ...] = batch_rodrigues(flame_sequence["neck_rot"])
         if "jaw_rot" in flame_sequence and flame_sequence["jaw_rot"] is not None:
             rotations[:, 2, ...] = batch_rodrigues(flame_sequence["jaw_rot"])
         if "eye_rot" in flame_sequence and flame_sequence["eye_rot"] is not None:

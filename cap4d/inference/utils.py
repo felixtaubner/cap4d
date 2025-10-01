@@ -136,4 +136,15 @@ def convert_and_save_latent_images(latents, model, device, output_dir):
         out_img_path = out_img_dir / f"{i:05d}.png"
         success = cv2.imwrite(str(out_img_path), img[..., [2, 1, 0]].astype(np.uint8))
         assert success, f"failed to save image to {out_img_path}"
+
+
+def find_number_of_generated_images(n_gen_default, n_ref, R_max, V):
+    R = min(n_ref, R_max)
+    missing_frames = n_gen_default % (V - R)
+    n_gen_new = n_gen_default + missing_frames
+
+    if missing_frames > 0:
+        print(f"WARNING: Default number of generated images {n_gen_default} incompatible with R={R}, adjusting the number to {n_gen_new}")
+
+    return n_gen_new
     

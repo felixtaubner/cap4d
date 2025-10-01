@@ -1,46 +1,12 @@
 import numpy as np
-from scipy.spatial.transform import Rotation as R
+
+from cap4d.datasets.utils import (
+    pivot_camera_intrinsic,
+    get_head_direction,
+    compute_yaw_pitch_to_face_direction,
+)
 
 from cap4d.inference.data.inference_data import CAP4DInferenceDataset
-
-
-def pivot_camera_intrinsic(extrinsics, target, angles, distance_factor=1.):
-    """
-    Rotates a camera around a target point.
-
-    Parameters:
-    - extrinsics: (4x4) numpy array, world_to_camera transformation matrix.
-    - target: (3,) numpy array, target coordinates to pivot around.
-    - angles: (3,) array-like, rotation angles (degrees) around X, Y, Z axes.
-
-    Returns:
-    - new_extrinsics: (4x4) numpy array, updated world_to_camera transformation.
-    """
-    extrinsics = np.linalg.inv(extrinsics)
-
-    # Extract rotation and translation from extrinsics
-    R_c2w = extrinsics[:3, :3]  # 3x3 rotation matrix
-    t_c2w = extrinsics[:3, 3]   # 3x1 translation vector
-
-    # Compute offset vector from target to camera
-    v = (t_c2w - target) * distance_factor
-
-    # Compute rotation matrix for given angles
-    R_delta = R.from_euler('YX', angles, degrees=True).as_matrix()  # 'yx'
-
-    # Apply intrinsic rotation to the camera's rotation (local frame)
-    new_R_c2w = R_c2w @ R_delta
-
-    # Rotate position offset in camera frame as well
-    new_v = R_c2w @ R_delta @ np.linalg.inv(R_c2w) @ v
-    new_t_c2w = target + new_v
-
-    # Construct new extrinsics
-    new_extrinsics = np.eye(4)
-    new_extrinsics[:3, :3] = new_R_c2w
-    new_extrinsics[:3, 3] = new_t_c2w
-
-    return new_extrinsics  # np.linalg.inv(new_extrinsics)
 
 
 def elipsis_sample(yaw_limit, pitch_limit):
@@ -106,12 +72,21 @@ class GenerationDataset(CAP4DInferenceDataset):
         ref_tra = reference_flame_item["tra"]
         ref_tra_cv = ref_tra.copy()
         ref_tra_cv[:, 1:] = -ref_tra_cv[:, 1:]  # p3d to opencv
+        ref_head_dir = get_head_direction(ref_rot)  # in p3d
+        ref_head_dir[:, 1:] = -ref_head_dir[:, 1:]  # p3d to opencv
+
+        center_yaw, center_pitch = compute_yaw_pitch_to_face_direction(
+            ref_extr[0],
+            ref_head_dir[0],
+        )
 
         flame_list = []
 
         assert n_samples <= len(gen_data["expr"]), "too many samples"
         for expr, eye_rot in zip(gen_data["expr"][:n_samples], gen_data["eye_rot"][:n_samples]):
             yaw, pitch = elipsis_sample(yaw_range, pitch_range)
+            yaw += center_yaw
+            pitch += center_pitch
 
             rotated_extr = pivot_camera_intrinsic(ref_extr[0], ref_tra_cv[0], [yaw, pitch])
 
