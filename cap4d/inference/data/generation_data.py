@@ -1,6 +1,11 @@
 import numpy as np
 
-from cap4d.datasets.utils import pivot_camera_intrinsic
+from cap4d.datasets.utils import (
+    pivot_camera_intrinsic,
+    get_head_direction,
+    compute_yaw_pitch_to_face_direction,
+)
+
 from cap4d.inference.data.inference_data import CAP4DInferenceDataset
 
 
@@ -67,12 +72,21 @@ class GenerationDataset(CAP4DInferenceDataset):
         ref_tra = reference_flame_item["tra"]
         ref_tra_cv = ref_tra.copy()
         ref_tra_cv[:, 1:] = -ref_tra_cv[:, 1:]  # p3d to opencv
+        ref_head_dir = get_head_direction(ref_rot)  # in p3d
+        ref_head_dir[:, 1:] = -ref_head_dir[:, 1:]  # p3d to opencv
+
+        center_yaw, center_pitch = compute_yaw_pitch_to_face_direction(
+            ref_extr[0],
+            ref_head_dir[0],
+        )
 
         flame_list = []
 
         assert n_samples <= len(gen_data["expr"]), "too many samples"
         for expr, eye_rot in zip(gen_data["expr"][:n_samples], gen_data["eye_rot"][:n_samples]):
             yaw, pitch = elipsis_sample(yaw_range, pitch_range)
+            yaw += center_yaw
+            pitch += center_pitch
 
             rotated_extr = pivot_camera_intrinsic(ref_extr[0], ref_tra_cv[0], [yaw, pitch])
 

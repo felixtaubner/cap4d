@@ -1,0 +1,2 @@
+export CAP4D_PATH=$(realpath "./")
+export PIXEL3DMM_PATH=$(realpath "../pixel3dmm/")

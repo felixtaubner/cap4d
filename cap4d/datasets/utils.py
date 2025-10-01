@@ -276,3 +276,47 @@ def pivot_camera_intrinsic(extrinsics, target, angles, distance_factor=1.):
     # import pdb; pdb.set_trace()
 
     return np.linalg.inv(new_extrinsics)
+
+
+def get_head_direction(rot):
+    rot_mat = R.from_rotvec(rot).as_matrix()
+    head_dir = -rot_mat[:3, 2]  # -z is head direction
+    head_dir[1:] = -head_dir[1:]  # p3d to opencv
+    return head_dir
+
+
+def compute_yaw_pitch_to_face_direction(extrinsics, world_direction):
+    """
+    Computes yaw and pitch angles (in degrees) needed to rotate the camera
+    so its forward vector aligns with the given world-space direction.
+
+    Parameters:
+    - extrinsics: (4x4) camera-to-world matrix
+    - world_direction: (3,) unit vector representing desired view direction in world space
+
+    Returns:
+    - yaw, pitch: angles in degrees
+    """
+
+    # Normalize direction
+    world_direction = world_direction / np.linalg.norm(world_direction)
+
+    # Camera's current rotation (camera-to-world)
+    R_c2w = extrinsics[:3, :3]
+
+    # Convert world direction into camera's local frame
+    dir_local = R_c2w.T @ world_direction
+
+    dx, dy, dz = dir_local
+
+    # Handle potential divide-by-zero or arcsin domain errors
+    dz = np.clip(dz, -1e-6, 1) if dz == 0 else dz
+    dy = np.clip(dy, -1, 1)
+
+    # Yaw: rotation around Y (left-right)
+    yaw = np.degrees(np.arctan2(dx, dz))
+
+    # Pitch: rotation around X (up-down)
+    pitch = np.degrees(np.arcsin(-dy))  # negative because +Y is up
+
+    return yaw, pitch

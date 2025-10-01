@@ -4,11 +4,11 @@
 usage() {
   echo "Usage: $0 [INPUT_VIDEO_PATH] [OUTPUT_PATH]"
   echo
-  echo "Notice: PIXEL3DMM_PATH environment variable must be set!"
+  echo "Notice: PIXEL3DMM_PATH and CAP4D_PATH environment variable must be set!"
   echo
   echo "Arguments:"
-  echo "  INPUT_VIDEO_PATH   Path to the input video file"
-  echo "  OUTPUT_PATH        Path to the output file or directory"
+  echo "  INPUT_VIDEO_PATH   Path to the input video file or directory of images"
+  echo "  OUTPUT_PATH        Path to the output directory"
   echo
   echo "Options:"
   echo "  --help             Show this help message and exit"
@@ -85,6 +85,8 @@ python scripts/network_inference.py model.prediction_type=uv_map video_name=$VID
 
 # run
 python scripts/track.py video_name=$VID_NAME include_neck=False use_flame2023=True ignore_mica=True is_discontinuous=$IS_DISCONTINOUS
+
+echo "Converting Pixel3DMM tracking to FlowFace"
 
 # switch to CAP4D_PATH
 cd $CAP4D_PATH

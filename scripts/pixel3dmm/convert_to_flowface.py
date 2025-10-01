@@ -264,19 +264,22 @@ def fit_flame(
     )
 
     # fix eye rotations
-    for frame_id in range(len(gaze_directions)):
-        yaw, pitch = gaze_directions[frame_id][0]
-        eye_rot = compute_eyeball_rotation(
-            yaw.cpu().numpy(),
-            pitch.cpu().numpy(),
-            cam_rt[:3, :3],
-            cam_rt[:3, 3],
-            fitter.rot.data[frame_id].detach().cpu().numpy(),
-            fitter.tra.data[frame_id].detach().cpu().numpy(),
-        )
+    for frame_id in range(verts_3d.shape[0]):
+        if gaze_directions[frame_id] is None:
+            eye_rot = np.zeros(3)
+        else:
+            yaw, pitch = gaze_directions[frame_id][0]
+            eye_rot = compute_eyeball_rotation(
+                yaw.cpu().numpy(),
+                pitch.cpu().numpy(),
+                cam_rt[:3, :3],
+                cam_rt[:3, 3],
+                fitter.rot.data[frame_id].detach().cpu().numpy(),
+                fitter.tra.data[frame_id].detach().cpu().numpy(),
+            )
         fitter.eye_rot.data[frame_id] = torch.from_numpy(eye_rot).float().to(device)
 
-    clamp_factor = fitter.eye_rot.norm(dim=-1, keepdim=True)
+    clamp_factor = fitter.eye_rot.norm(dim=-1, keepdim=True).clamp(min=1e-6)
     fitter.eye_rot.data = fitter.eye_rot.data / clamp_factor * clamp_factor.clamp(max=1.)
 
     if smooth_eye_rotations:
@@ -383,8 +386,11 @@ def main(args):
 
         frame_img = torch.from_numpy(frame_img)[None] / 255.
 
-        with torch.no_grad():
-            gaze = l2cs_tracker.process(frame_img)
+        if args.enable_gaze_tracking:
+            with torch.no_grad():
+                gaze = l2cs_tracker.process(frame_img)
+        else:
+            gaze = None
         gaze_directions.append(gaze)
 
         downsample_ratio = auto_downsample_ratio(*frame_img.shape[2:])
@@ -508,27 +514,27 @@ def main(args):
     if is_video:
         # If it is a video, that means we can use it for animation. 
         # Save the camera trajectory and create a corresponding camera orbit.
-
+        n_orbit_frames = n_frames
         fps = frame_reader.get_avg_fps()
 
         print("saving camera trajectories")
         trajectory = {
-            "extr": out_flame["extr"].repeat(n_frames, axis=0),
-            "fx": out_flame["fx"].repeat(n_frames, axis=0),
-            "fy": out_flame["fy"].repeat(n_frames, axis=0),
-            "cx": out_flame["cx"].repeat(n_frames, axis=0),
-            "cy": out_flame["cy"].repeat(n_frames, axis=0),
+            "extr": out_flame["extr"].repeat(n_orbit_frames, axis=0),
+            "fx": out_flame["fx"].repeat(n_orbit_frames, axis=0),
+            "fy": out_flame["fy"].repeat(n_orbit_frames, axis=0),
+            "cx": out_flame["cx"].repeat(n_orbit_frames, axis=0),
+            "cy": out_flame["cy"].repeat(n_orbit_frames, axis=0),
             "resolution": orig_resolution,
             "fps": fps,
         }
         np.savez(output_path / "cam_static.npz", **trajectory)
 
         # Create orbit trajectory
-        t = np.arange(n_frames) / fps / ORBIT_PERIOD
+        t = np.arange(n_orbit_frames) / fps / ORBIT_PERIOD
         yaw_angles = np.cos(t * 2 * np.pi) * ORBIT_AMPLITUDE_YAW
         pitch_angles = np.sin(t * 2 * np.pi) * ORBIT_AMPLITUDE_PITCH
-        for i in range(n_frames):
-            target = out_flame["tra"][i].copy()
+        for i in range(n_orbit_frames):
+            target = out_flame["tra"][0].copy()
             target[1:] = -target[1:]
             trajectory["extr"][i] = pivot_camera_intrinsic(
                 trajectory["extr"][i],
@@ -569,6 +575,12 @@ if __name__ == "__main__":
         type=int,
         default=100,
         help="maximum number of reference frames",
+    )
+    parser.add_argument(
+        "--enable_gaze_tracking",
+        type=int,
+        default=1,
+        help="whether to enable gaze tracking (if False, eyeball rotation will be zero)",
     )
     parser.add_argument(
         "--device",

@@ -107,7 +107,8 @@ export PIXEL3DMM_PATH=$(realpath "../PATH/TO/pixel3dmm")
 export CAP4D_PATH=$(realpath "../PATH/TO/cap4d") 
 
 # process a video
-bash scripts/track_video_pixel3dmm.sh examples/input/animation/tracking_example/video.mp4 examples/input/animation/tracking_example/  # input_path (can be directory containing images or video), output_path (directory where tracking is saved)
+bash scripts/track_video_pixel3dmm.sh --help
+bash scripts/track_video_pixel3dmm.sh examples/input/animation/example_video.mp4 examples/input/animation/example_tracking/  # input_path (can be directory containing images or video), output_path (directory where tracking is saved)
 
 # process a directory of images
 bash scripts/track_video_pixel3dmm.sh examples/input/felix/images/cam0/ examples/input/felix_pixel3dmm/
@@ -147,6 +148,18 @@ The `--target_animation_path` contains FLAME expressions and pose, while the (op
 
 We provide a convenient script to run full inference using your reference images and optionally a driving video.
 
+```bash
+export PIXEL3DMM_PATH=$(realpath "../PATH/TO/pixel3dmm")
+export CAP4D_PATH=$(realpath "../PATH/TO/cap4d") 
+
+# Generate avatar with custom input images/videos.
+bash scripts/generate_avatar.sh --help
+bash scripts/generate_avatar.sh {INPUT_VIDEO_PATH} {OUTPUT_PATH} [{QUALITY}] [{DRIVING_VIDEO_PATH}]
+
+# Example generation with default quality generation with input images and driving video.
+bash scripts/generate_avatar.sh examples/input/felix/images/cam0/ examples/output/felix_custom/ default examples/input/animation/example_video.mp4
+```
+
 ## 📚 Related Resources
 
 The MMDM code is based on [ControlNet](https://github.com/lllyasviel/ControlNet). The 4D Gaussian avatar code is based on [GaussianAvatars](https://github.com/ShenhanQian/GaussianAvatars). Special thanks to the authors for making their code public!
@@ -156,6 +169,7 @@ Related work:
 - [GaussianAvatars](https://shenhanqian.github.io/gaussian-avatars): Photorealistic Head Avatars with Rigged 3D Gaussians
 - [FlowFace](https://felixtaubner.github.io/flowface/): 3D Face Tracking from 2D Video through Iterative Dense UV to Image Flow
 - [StableDiffusion](https://github.com/Stability-AI/stablediffusion): High-Resolution Image Synthesis with Latent Diffusion Models
+- [Pixel3DMM](https://github.com/SimonGiebenhain/pixel3dmm): Versatile Screen-Space Priors for Single-Image 3D Face Reconstruction
 
 Awesome concurrent work:
 - [Pippo](https://yashkant.github.io/pippo/): High-Resolution Multi-View Humans from a Single Image
