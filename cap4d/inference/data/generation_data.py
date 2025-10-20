@@ -86,7 +86,7 @@ class GenerationDataset(CAP4DInferenceDataset):
         for expr, eye_rot in zip(gen_data["expr"][:n_samples], gen_data["eye_rot"][:n_samples]):
             yaw, pitch = elipsis_sample(yaw_range, pitch_range)
             yaw += center_yaw
-            pitch += center_pitch
+            pitch -= center_pitch  # pitch is flipped for some reason
 
             rotated_extr = pivot_camera_intrinsic(ref_extr[0], ref_tra_cv[0], [yaw, pitch])
 
