@@ -213,7 +213,7 @@ class FrameReader:
         return len(self.frame_list)
     
     def __getitem__(self, index):
-        img = cv2.imread(self.frame_list[index])[..., [2, 1, 0]]
+        img = cv2.imread(str(self.frame_list[index]))[..., [2, 1, 0]]
         return img
 
 

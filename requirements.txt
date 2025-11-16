@@ -13,3 +13,4 @@ plyfile
 roma
 xformers
 triton
+matplotlib
