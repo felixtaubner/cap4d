@@ -184,6 +184,9 @@ upload the exported animation found in
 
 The MMDM code is based on [ControlNet](https://github.com/lllyasviel/ControlNet). The 4D Gaussian avatar code is based on [GaussianAvatars](https://github.com/ShenhanQian/GaussianAvatars). Special thanks to the authors for making their code public!
 
+Follow-up work:
+- [MVP4D](https://felixtaubner.github.io/mvp4d/): Multi-View Portrait Video Diffusion for Animatable 4D Avatars
+
 Related work: 
 - [CAT3D](https://cat3d.github.io/): Create Anything in 3D with Multi-View Diffusion Models
 - [GaussianAvatars](https://shenhanqian.github.io/gaussian-avatars): Photorealistic Head Avatars with Rigged 3D Gaussians
